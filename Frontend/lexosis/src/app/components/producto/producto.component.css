@@ -1,0 +1,16 @@
+.modal-dialog {
+    max-width: 80%;
+    width: auto;
+  }
+  .modal-content {
+    width: 100%;
+    height: auto;
+  }
+
+
+  .img-fluid {
+    max-width: 65%;
+    height: auto;
+    display: block;
+    margin: 0 auto;
+  }

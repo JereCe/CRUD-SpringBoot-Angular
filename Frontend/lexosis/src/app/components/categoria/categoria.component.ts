@@ -2,7 +2,7 @@ import { Component,OnInit } from '@angular/core';
 import { Categoria } from 'src/app/models/categoria';
 import { CategoriaService } from 'src/app/services/categoria.service';
 import { faCheck, faTimes } from '@fortawesome/free-solid-svg-icons';
-import { FormGroup, FormControl } from '@angular/forms';
+import {FormGroup, FormControl, Validators } from '@angular/forms';
 
 @Component({
   selector: 'app-categoria',
@@ -17,6 +17,7 @@ export class CategoriaComponent implements OnInit {
   update: boolean = false
   categorialist = new Array<Categoria>()
   categoriaFrom : FormGroup = new FormGroup({})
+  c = new Categoria();
 
 
   constructor(private categoriaService: CategoriaService){}
@@ -25,11 +26,14 @@ export class CategoriaComponent implements OnInit {
     this.getAll()
     this.categoriaFrom = new FormGroup({
       id: new FormControl(''),
-      nombre:new FormControl(''),
+      nombre:new FormControl(this.c.nombre, Validators.required),
       descripcion: new FormControl(''),
-      activo: new FormControl('')
+      activo: new FormControl(this.c.activo, Validators.required)
     })
   }
+
+  get nombre() { return this.categoriaFrom.get('nombre') }
+  get activo() { return this.categoriaFrom.get('activo') }
 
   getAll(){
     this.categoriaService.getAll().subscribe(response =>{
@@ -47,45 +51,59 @@ export class CategoriaComponent implements OnInit {
   }
 
   crearCategoria(){
-    let c = new Categoria();
+    
     if (this.categoriaFrom) {
       const activo = this.categoriaFrom.get('activo')?.value
       const activoBoolean = activo === '1'
-      c.nombre = this.categoriaFrom.get('nombre')?.value
-      c.descripcion = this.categoriaFrom.get('descripcion')?.value
-      c.activo = activoBoolean
+      this.c.nombre = this.categoriaFrom.get('nombre')?.value
+      this.c.descripcion = this.categoriaFrom.get('descripcion')?.value
+      this.c.activo = activoBoolean
       if (this.update) {
         const categoriaid = this.categoriaFrom.get('id')?.value
-        c.id = categoriaid
+        this.c.id = categoriaid
       }
     }
-    return c
+    return this.c
   }
 
   save(){
-    const c = this.crearCategoria()
-    if(c){
-      this.categoriaService.save(c).subscribe(response=>{
-      this.getAll();
-      alert("Alta Exitosa")
-      this.categoriaFrom.reset()
-    },error=>{
-      console.log(error)
-    })   
+
+    if (this.categoriaFrom.invalid) {
+
+      this.marcarCamposInvalidos();
+    }else{
+
+      const c = this.crearCategoria()
+      if(c){
+        this.categoriaService.save(c).subscribe(response=>{
+        this.getAll();
+        alert("Alta Exitosa")
+        this.categoriaFrom.reset()
+        },error=>{
+          console.log(error)
+        })   
+      }
+    }
   }
-}
 
 updateCategoria(){
-  const c = this.crearCategoria()
-  if(c){
-    this.categoriaService.update(c).subscribe(response=>{
-    this.getAll();
-    alert("Modificacion Exitosa")
-    this.categoriaFrom.reset()
-  },error=>{
-    console.log(error)
-  })   
-}
+
+  if (this.categoriaFrom.invalid) {
+
+    this.marcarCamposInvalidos();
+  }else{
+
+    const c = this.crearCategoria()
+    if(c){
+      this.categoriaService.update(c).subscribe(response=>{
+      this.getAll();
+      alert("Modificacion Exitosa")
+      this.categoriaFrom.reset()
+        },error=>{
+          console.log(error)
+        })   
+      }     
+    }
 }
 delete (id : number){
   this.categoriaService.delete(id).subscribe (() =>{
@@ -111,6 +129,13 @@ selectItem(item: any){
   this.categoriaFrom.controls['descripcion'].setValue(item.descripcion)
   this.categoriaFrom.controls['activo'].setValue(item.activo ? '1' : '0')
  
+}
+
+marcarCamposInvalidos(): void {
+
+  Object.values(this.categoriaFrom.controls).forEach(control => {
+    control.markAsTouched()
+  })
 }
 
 

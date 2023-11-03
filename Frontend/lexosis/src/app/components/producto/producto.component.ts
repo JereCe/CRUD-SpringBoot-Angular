@@ -1,13 +1,14 @@
-import { Component,OnInit } from '@angular/core';
+import { Component,OnInit , ViewChild, TemplateRef} from '@angular/core';
 import { Producto } from 'src/app/models/producto';
 import { ProductoService } from 'src/app/services/producto.service';
 import { faCheck, faTimes } from '@fortawesome/free-solid-svg-icons';
-import { FormControl, FormGroup } from '@angular/forms';
+import { FormGroup, FormControl, Validators} from '@angular/forms';
 import { CategoriaService } from 'src/app/services/categoria.service'
 import { MediaService } from '../../services/media.service';
 import { Observable, of } from 'rxjs';
 import { switchMap } from 'rxjs/operators';
 import { Categoria } from '../../models/categoria';
+import { NgbModal, NgbModalRef } from '@ng-bootstrap/ng-bootstrap';
 
 @Component({
   selector: 'app-producto',
@@ -18,12 +19,16 @@ export class ProductoComponent implements OnInit {
   faCheck = faCheck
   faTimes = faTimes
   selectedFile: File | undefined
+  selectedImage: string = ''
   productolist = new Array<Producto>()
   categorialist = new Array<Categoria>()
   productoFrom : FormGroup = new FormGroup({})
   update: boolean = false
-  imagenActual: string 
-  constructor(private mediaService:MediaService, private productoService: ProductoService,private categoriaService: CategoriaService)
+  imagenActual: string
+  @ViewChild('imageModal') imageModal!: TemplateRef<any>;
+  modalRef: NgbModalRef | undefined
+  p = new Producto()
+  constructor(private mediaService:MediaService, private productoService: ProductoService,private categoriaService: CategoriaService,private modalService: NgbModal)
   {
   }
   ngOnInit() : void{
@@ -32,15 +37,23 @@ export class ProductoComponent implements OnInit {
     this.productoFrom = new FormGroup({
       id: new FormControl(''),
       codigo:new FormControl(''),
-      nombre:new FormControl(''),
-      precioVenta: new FormControl(''),
-      stock: new FormControl(''),
+      nombre:new FormControl(this.p.nombre, Validators.required),
+      precioVenta: new FormControl(this.p.precioVenta, Validators.required),
+      stock: new FormControl(this.p.stock, Validators.required),
       descripcion: new FormControl(''),
       imagen: new FormControl(''),
-      activo: new FormControl(''),
-      categoria: new FormControl(null)
+      activo: new FormControl(this.p.activo, Validators.required),
+      categoria: new FormControl(this.p.categoria, Validators.required)
     })
   }
+
+
+  get nombre() { return this.productoFrom.get('nombre') }
+  get precioVenta() { return this.productoFrom.get('precioVenta') }
+  get activo() { return this.productoFrom.get('activo') }
+  get stock() { return this.productoFrom.get('stock') }
+  get categoria() { return this.productoFrom.get('categoria') }
+
 
   onFileSelected(event: any) {
     if (event?.target?.files) {
@@ -78,7 +91,7 @@ upload(): Observable<string> {
     this.productoFrom.reset()
   }
   crearProducto(): Observable<Producto> {
-    let p = new Producto();
+    
     if (this.productoFrom) {
       const categoriaId = this.productoFrom.get('categoria')?.value
       const categoriaIdNumerico = Number(categoriaId)
@@ -89,62 +102,66 @@ upload(): Observable<string> {
   
   
       if (categoriaSeleccionada) {
-        p.codigo = this.productoFrom.get('codigo')?.value
-        p.nombre = this.productoFrom.get('nombre')?.value
-        p.precioVenta = this.productoFrom.get('precioVenta')?.value
-        p.stock = this.productoFrom.get('stock')?.value
-        p.descripcion = this.productoFrom.get('descripcion')?.value
-        p.activo = activoBoolean
-        p.categoria = categoriaSeleccionada
-        console.table(p)
+        this.p.codigo = this.productoFrom.get('codigo')?.value
+        this.p.nombre = this.productoFrom.get('nombre')?.value
+        this.p.precioVenta = this.productoFrom.get('precioVenta')?.value
+        this.p.stock = this.productoFrom.get('stock')?.value
+        this.p.descripcion = this.productoFrom.get('descripcion')?.value
+        this.p.activo = activoBoolean
+        this.p.categoria = categoriaSeleccionada
       }
   
       if (this.update) {
         const productoid = this.productoFrom.get('id')?.value
-        p.id = productoid
+        this.p.id = productoid
       }
     }
   
     return this.upload().pipe(
       switchMap((url: string) => {
         if(!url){
-          p.imagen = this.imagenActual
+          this.p.imagen = this.imagenActual
         }else{
-          p.imagen = url
+          this.p.imagen = url
         }
-        return of(p)
+        return of(this.p)
       })
     );
   }
   save() {
-    const productoObservable = this.crearProducto();
-  
-    if (productoObservable) {
-      productoObservable.subscribe((p: Producto) => {
-        this.productoService.save(p).subscribe(response => {
-          this.getAll()
-          alert("Alta Exitosa")
-          this.productoFrom.reset()
-        }, error => {
-          console.log(error)
+    if (this.productoFrom.invalid) {
+      this.marcarCamposInvalidos();
+    }else{
+      const productoObservable = this.crearProducto();
+      if (productoObservable) {
+        productoObservable.subscribe((p: Producto) => {
+          this.productoService.save(p).subscribe(response => {
+            this.getAll()
+            alert("Alta Exitosa")
+            this.productoFrom.reset()
+          }, error => {
+            console.log(error)
+          });
         });
-      });
+      }
     }
-  }
-  
+  } 
   updateProducto() {
-    const productoObservable = this.crearProducto();
-  
-    if (productoObservable) {
-      productoObservable.subscribe((p: Producto) => {
-        this.productoService.update(p).subscribe(response => {
-          this.getAll()
-          alert("Modificacion Exitosa")
-          this.productoFrom.reset()
-        }, error => {
-          console.log(error)
+    if (this.productoFrom.invalid) {
+      this.marcarCamposInvalidos();
+    }else{
+      const productoObservable = this.crearProducto();
+      if (productoObservable) {
+        productoObservable.subscribe((p: Producto) => {
+          this.productoService.update(p).subscribe(response => {
+            this.getAll()
+            alert("Modificacion Exitosa")
+            this.productoFrom.reset()
+          }, error => {
+            console.log(error)
+          });
         });
-      });
+      }
     }
   }
  
@@ -178,6 +195,27 @@ upload(): Observable<string> {
     if (categoriaElegida) {
       this.productoFrom.controls['categoria'].setValue(categoriaElegida.id);
 
+    }
+  }
+
+
+  marcarCamposInvalidos(): void {
+
+    Object.values(this.productoFrom.controls).forEach(control => {
+      control.markAsTouched()
+    })
+  }
+
+
+
+  showImageModal(imagen: string) {
+    this.selectedImage = imagen;
+    this.modalRef = this.modalService.open(this.imageModal, { size: 'lg' });
+  }
+
+  closeModal() {
+    if (this.modalRef) {
+      this.modalRef.close();
     }
   }
 }
