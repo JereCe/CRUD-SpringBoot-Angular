@@ -38,7 +38,6 @@ export class CategoriaComponent implements OnInit {
   getAll(){
     this.categoriaService.getAll().subscribe(response =>{
       this.categoriaList = response
-      console.log(this.categoriaList)
     },error=>{
       console.log(error)
     })
