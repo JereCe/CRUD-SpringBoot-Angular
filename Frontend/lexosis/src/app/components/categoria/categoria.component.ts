@@ -98,6 +98,7 @@ updateCategoria(){
       this.getAll();
       alert("Modificacion Exitosa")
       this.categoriaFrom.reset()
+      this.update = false
         },error=>{
           console.log(error)
         })   

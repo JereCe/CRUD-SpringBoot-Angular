@@ -91,6 +91,8 @@ upload(): Observable<string> {
     this.productoFrom.reset()
   }
   crearProducto(): Observable<Producto> {
+    const p = new Producto()
+    
     
     if (this.productoFrom) {
       const categoriaId = this.productoFrom.get('categoria')?.value
@@ -102,33 +104,37 @@ upload(): Observable<string> {
   
   
       if (categoriaSeleccionada) {
-        this.p.codigo = this.productoFrom.get('codigo')?.value
-        this.p.nombre = this.productoFrom.get('nombre')?.value
-        this.p.precioVenta = this.productoFrom.get('precioVenta')?.value
-        this.p.stock = this.productoFrom.get('stock')?.value
-        this.p.descripcion = this.productoFrom.get('descripcion')?.value
-        this.p.activo = activoBoolean
-        this.p.categoria = categoriaSeleccionada
+        p.codigo = this.productoFrom.get('codigo')?.value
+        p.nombre = this.productoFrom.get('nombre')?.value
+        p.precioVenta = this.productoFrom.get('precioVenta')?.value
+        p.stock = this.productoFrom.get('stock')?.value
+        p.descripcion = this.productoFrom.get('descripcion')?.value
+        p.activo = activoBoolean
+        p.categoria = categoriaSeleccionada
       }
   
       if (this.update) {
         const productoid = this.productoFrom.get('id')?.value
-        this.p.id = productoid
+        p.id = productoid
       }
     }
   
     return this.upload().pipe(
       switchMap((url: string) => {
         if(!url){
-          this.p.imagen = this.imagenActual
+          console.log("cuando la asigna al objeto")
+          console.log(this.imagenActual)
+          p.imagen = this.imagenActual
         }else{
-          this.p.imagen = url
+          p.imagen = url
         }
-        return of(this.p)
+        return of(p)
       })
     );
   }
   save() {
+    this.imagenActual = ''
+    console.log(this.imagenActual)
     if (this.productoFrom.invalid) {
       this.marcarCamposInvalidos();
     }else{
@@ -157,6 +163,7 @@ upload(): Observable<string> {
             this.getAll()
             alert("Modificacion Exitosa")
             this.productoFrom.reset()
+            this.update = false
           }, error => {
             console.log(error)
           });
